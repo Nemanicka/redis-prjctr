@@ -1,4 +1,4 @@
-### Results
+### Eviction Policies Results
 
 ## volitile-lru
 
@@ -83,3 +83,52 @@
 # Steps to reproduce
 * Write keys until out of memory
 * Observe memory error
+
+# Cache stampede
+
+## Setup
+
+* Run two instances of Redis: one will be used as a "server" and another as a cache (just run docker compose). 
+
+* Run cache_stampede.go
+
+* Put some value to "server" via 
+```
+curl 'http://localhost:8080/set?key=aab&value=xxx'
+```
+
+* Run multiple times the following:
+
+```
+curl 'http://localhost:8080/cget?key=aab'
+```
+
+* Observe the following results:
+1st time:
+
+```
+err cache: key is missing
+Cache miss = true, forceUpdate = false
+Key = aab, value = xxx, delta = 259327
+```
+
+2nd time:
+
+```
+Get
+randF = -0.5030884861273567, delta = 259.327µs, subTime = -652322
+tte = 10:41:13.080211678, expiry = 10:41:17.337375323, now =  10:41:13.080864231
+Cache miss = false, forceUpdate = false
+Cache hit
+```
+
+Nth time:
+
+```
+randF = -0.3756785557835769, delta = 259.327µs, subTime = -487117
+tte = 10:41:18.257587127, expiry = 10:41:17.337375323, now =  10:41:18.258074515
+Cache miss = false, forceUpdate = true
+Key = aab, value = xxx, delta = 388387
+```
+
+So, the update happened before expiration date
